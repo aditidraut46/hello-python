@@ -1,20 +1,12 @@
 pipeline {
     agent any
+
     environment {
         PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:/var/lib/jenkins/.local/bin"
         PYTHONPATH = "."
     }
 
     stages {
-        stage('Test SSH Connection') {
-            steps {
-                sshagent(credentials: ['gce-ssh']) {
-                    sh '''
-                        ssh -o StrictHostKeyChecking=no aditidraut46@35.202.26.230 "echo Connected to App VM successfully!"
-                    '''
-                }
-            }
-        }
 
         stage('Checkout') {
             steps {
@@ -27,30 +19,32 @@ pipeline {
                 sh '''
                     python3 -m pip install --upgrade pip
                     pip3 install -r requirements.txt
-                    pytest -q || true
+                    pytest -q
                 '''
             }
         }
 
         stage('SonarQube Analysis (Non-blocking)') {
             steps {
-                script {
-                    try {
-                        withSonarQubeEnv('sonarqube') {
-                            withEnv(["PATH+SONAR=${tool 'SonarScanner'}/bin"]) {
-                                sh '''
-                                    sonar-scanner \
-                                        -Dsonar.projectKey=hello-python \
-                                        -Dsonar.sources=. \
-                                        -Dsonar.host.url=$SONAR_HOST_URL \
-                                        -Dsonar.login=$SONAR_AUTH_TOKEN \
-                                        -Dsonar.python.version=3.10
-                                '''
-                            }
-                        }
-                    } catch (err) {
-                        echo "⚠️ SonarQube analysis failed, continuing deployment: ${err}"
+                withSonarQubeEnv('sonarqube') { 
+                    withEnv(["PATH+SONAR=${tool 'SonarScanner'}/bin"]) { 
+                        sh '''
+                            sonar-scanner \
+                              -Dsonar.projectKey=hello-python \
+                              -Dsonar.sources=. \
+                              -Dsonar.host.url=$SONAR_HOST_URL \
+                              -Dsonar.login=$SONAR_AUTH_TOKEN \
+                              -Dsonar.python.version=3.10
+                        '''
                     }
+                }
+            }
+        }
+
+        stage('Test SSH Connection') {
+            steps {
+                sshagent(credentials: ['gce-ssh']) {
+                    sh 'ssh -o StrictHostKeyChecking=no aditidraut46@35.202.26.230 "echo Connected!"'
                 }
             }
         }
@@ -75,4 +69,4 @@ pipeline {
         failure { echo "❌ Pipeline Failed, check logs!" }
     }
 }
-
+ 
