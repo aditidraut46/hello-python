@@ -21,13 +21,15 @@ pipeline {
     stage('SonarQube Analysis') {
       steps {
         withSonarQubeEnv('sonarqube') {
-          sh '''
-            sonar-scanner \
-              -Dsonar.projectKey=hello-python \
-              -Dsonar.sources=. \
-              -Dsonar.host.url=$SONAR_HOST_URL \
-              -Dsonar.login=$SONAR_AUTH_TOKEN
-          '''
+          withEnv(["PATH+SONAR=${tool 'SonarScanner'}/bin"]) {
+            sh '''
+              sonar-scanner \
+                -Dsonar.projectKey=hello-python \
+                -Dsonar.sources=. \
+                -Dsonar.host.url=$SONAR_HOST_URL \
+                -Dsonar.login=$SONAR_AUTH_TOKEN
+            '''
+          }
         }
       }
     }
