@@ -24,7 +24,7 @@ pipeline {
 
         stage('SonarQube Analysis (Non-blocking)') {
             steps {
-                withSonarQubeEnv('sonarqube') {  // Must match Jenkins SonarQube config
+                withSonarQubeEnv('sonarqube') {
                     sh '''
                         sonar-scanner \
                             -Dsonar.projectKey=hello-python \
@@ -51,5 +51,22 @@ pipeline {
                     sh '''
                         scp -o StrictHostKeyChecking=no -r * aditidraut46@35.202.26.230:/home/aditidraut46/app/
                         ssh -o StrictHostKeyChecking=no aditidraut46@35.202.26.230 '
-                            p
+                            pkill -f "python3 /home/aditidraut46/app/app.py" || true
+                            nohup python3 /home/aditidraut46/app/app.py > /home/aditidraut46/app/app.log 2>&1 &
+                        '
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Pipeline Succeeded"
+        }
+        failure {
+            echo "❌ Pipeline Failed, check logs!"
+        }
+    }
+}
 
