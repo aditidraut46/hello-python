@@ -3,18 +3,21 @@ pipeline {
 
   stages {
     stage('Checkout') { steps { checkout scm } }
+
     stage('Run Tests') {
       steps {
         sh '''
           python3 -m pip install --upgrade pip
           pip3 install -r requirements.txt
-          pytest -q || true
+          export PATH=$PATH:/var/lib/jenkins/.local/bin
+          pytest -q
         '''
       }
     }
+
     stage('SonarQube Analysis') {
       steps {
-        withSonarQubeEnv('MySonar') {
+        withSonarQubeEnv('sonarqube') {
           sh '''
             sonar-scanner \
               -Dsonar.projectKey=hello-python \
@@ -25,9 +28,15 @@ pipeline {
         }
       }
     }
+
     stage('Wait Quality Gate') {
-      steps { timeout(time: 5, unit: 'MINUTES') { waitForQualityGate abortPipeline: true } }
+      steps {
+        timeout(time: 5, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
     }
+
     stage('Deploy to App VM') {
       steps {
         sshagent(credentials: ['gce-ssh']) {
