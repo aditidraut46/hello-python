@@ -26,15 +26,17 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('sonarqube') {
-                    sh '''
-                        sonar-scanner \
-                        -Dsonar.projectKey=hello-python \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=$SONAR_HOST_URL \
-                        -Dsonar.login=$SONAR_AUTH_TOKEN \
-                        -Dsonar.python.version=3.10
-                    '''
+                withSonarQubeEnv('sonarqube') { // Must match your Jenkins SonarQube server config
+                    withEnv(["PATH+SONAR=${tool 'SonarScanner'}/bin"]) { // Use Jenkins SonarScanner tool
+                        sh '''
+                            sonar-scanner \
+                            -Dsonar.projectKey=hello-python \
+                            -Dsonar.sources=. \
+                            -Dsonar.host.url=$SONAR_HOST_URL \
+                            -Dsonar.login=$SONAR_AUTH_TOKEN \
+                            -Dsonar.python.version=3.10
+                        '''
+                    }
                 }
             }
         }
@@ -42,7 +44,6 @@ pipeline {
         stage('Check Quality Gate (Non-blocking)') {
             steps {
                 script {
-                    // Wrap in try/catch to avoid pipeline abort
                     try {
                         timeout(time: 15, unit: 'MINUTES') {
                             def qg = waitForQualityGate()
