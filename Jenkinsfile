@@ -2,7 +2,9 @@ pipeline {
   agent any
 
   stages {
-    stage('Checkout') { steps { checkout scm } }
+    stage('Checkout') { 
+      steps { checkout scm } 
+    }
 
     stage('Run Tests') {
       steps {
@@ -10,6 +12,7 @@ pipeline {
           python3 -m pip install --upgrade pip
           pip3 install -r requirements.txt
           export PATH=$PATH:/var/lib/jenkins/.local/bin
+          export PYTHONPATH=.
           pytest -q
         '''
       }
@@ -53,8 +56,8 @@ pipeline {
   }
 
   post {
-    success { echo "Pipeline Succeeded" }
-    failure { echo "Pipeline Failed" }
+    success { echo " Pipeline Succeeded" }
+    failure { echo " Pipeline Failed" }
   }
 }
 
