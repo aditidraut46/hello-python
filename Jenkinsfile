@@ -26,14 +26,14 @@ pipeline {
 
     stage('SonarQube Analysis') {
       steps {
-        withSonarQubeEnv('sonarqube') {
-          withEnv(["PATH+SONAR=${tool 'SonarScanner'}/bin"]) {
+        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+          withSonarQubeEnv('sonarqube') {
             sh '''
               sonar-scanner \
                 -Dsonar.projectKey=hello-python \
                 -Dsonar.sources=. \
                 -Dsonar.host.url=$SONAR_HOST_URL \
-                -Dsonar.login=$SONAR_AUTH_TOKEN \
+                -Dsonar.login=$SONAR_TOKEN \
                 -Dsonar.python.version=3.10
             '''
           }
@@ -41,21 +41,10 @@ pipeline {
       }
     }
 
-    stage('Check Quality Gate (Non-blocking)') {
+    stage('Wait Quality Gate') {
       steps {
-        script {
-          try {
-            timeout(time: 10, unit: 'MINUTES') {
-              def qg = waitForQualityGate()
-              if (qg.status != 'OK') {
-                echo "⚠️ Quality Gate status: ${qg.status} — continuing with deployment."
-              } else {
-                echo "✅ Quality Gate passed"
-              }
-            }
-          } catch (err) {
-            echo "⚠️ Could not get Quality Gate status: ${err} — continuing with deployment."
-          }
+        timeout(time: 10, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
         }
       }
     }
