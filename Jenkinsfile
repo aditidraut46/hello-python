@@ -71,5 +71,23 @@ pipeline {
                 script {
                     // Run Quality Gate check asynchronously
                     def qg = waitForQualityGate(timeout: 5, abortPipeline: false)
-                    e
+                    echo "🔔 SonarQube Quality Gate status: ${qg.status}"
+                    
+                    if (qg.status != 'OK') {
+                        echo "⚠️ Quality Gate failed, but deployment already ran. Investigate manually."
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 Pipeline Succeeded"
+        }
+        failure {
+            echo "❌ Pipeline Failed"
+        }
+    }
+}
 
