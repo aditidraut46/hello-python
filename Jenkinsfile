@@ -19,10 +19,10 @@ pipeline {
                 sh '''
                   echo "📦 Installing dependencies..."
                   python3 -m pip install --upgrade pip
-                  pip3 install -r requirements.txt
+                  pip3 install --user -r requirements.txt
                   
                   echo "🧪 Running tests..."
-                  pytest -q
+                  python3 -m pytest -q
                 '''
             }
         }
@@ -59,8 +59,10 @@ pipeline {
                     sh '''
                         echo "🚀 Deploying with systemd..."
 
-                        # Copy repo files
+                        # Ensure app directory exists
                         ssh -o StrictHostKeyChecking=no aditidraut46@34.16.36.23 "mkdir -p /home/aditidraut46/app"
+
+                        # Copy repo files
                         scp -o StrictHostKeyChecking=no -r * aditidraut46@34.16.36.23:/home/aditidraut46/app/
 
                         # Restart systemd service
