@@ -4,6 +4,9 @@ pipeline {
     environment {
         SONARQUBE = 'sonarqube'
         SCANNER = 'SonarScanner'
+        SONAR_PROJECT_KEY = 'hello-python'
+        SONAR_API_TOKEN = credentials('sonar-token')  // Jenkins secret
+        SONAR_HOST_URL = 'http://34.41.178.220:9000'
     }
 
     stages {
@@ -27,17 +30,17 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
+        stage('SonarQube Analysis (Async)') {
             steps {
                 withSonarQubeEnv("${SONARQUBE}") {
                     withEnv(["PATH+SONAR=${tool SCANNER}/bin"]) {
                         sh '''
-                          echo "🔍 Running SonarQube scan..."
+                          echo "🔍 Running SonarQube scan asynchronously..."
                           sonar-scanner \
-                            -Dsonar.projectKey=hello-python \
+                            -Dsonar.projectKey=$SONAR_PROJECT_KEY \
                             -Dsonar.sources=. \
                             -Dsonar.host.url=$SONAR_HOST_URL \
-                            -Dsonar.login=$SONAR_AUTH_TOKEN \
+                            -Dsonar.login=$SONAR_API_TOKEN \
                             -Dsonar.python.version=3.10
                         '''
                     }
@@ -66,16 +69,16 @@ pipeline {
             }
         }
 
-        stage('Quality Gate (Async)') {
+        stage('Optional: Check SonarQube Quality Gate') {
             steps {
                 script {
-                    // Run Quality Gate check asynchronously
-                    def qg = waitForQualityGate(timeout: 5, abortPipeline: false)
-                    echo "🔔 SonarQube Quality Gate status: ${qg.status}"
-                    
-                    if (qg.status != 'OK') {
-                        echo "⚠️ Quality Gate failed, but deployment already ran. Investigate manually."
-                    }
+                    echo "🔔 Fetching SonarQube Quality Gate result (non-blocking)..."
+                    sh """
+                      curl -s -u $SONAR_API_TOKEN: \
+                        "$SONAR_HOST_URL/api/qualitygates/project_status?projectKey=$SONAR_PROJECT_KEY" \
+                        | jq '.projectStatus.status'
+                    """
+                    echo "ℹ️ You can manually inspect the SonarQube dashboard for full details."
                 }
             }
         }
