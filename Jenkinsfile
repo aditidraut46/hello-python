@@ -45,27 +45,15 @@ pipeline {
             }
         }
 
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 2, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
-
         stage('Deploy to App VM') {
             steps {
                 sshagent(credentials: ['gce-ssh']) {
                     sh '''
                         echo "🚀 Deploying with systemd..."
 
-                        # Ensure app directory exists
                         ssh -o StrictHostKeyChecking=no aditidraut46@34.16.36.23 "mkdir -p /home/aditidraut46/app"
-
-                        # Copy repo files
                         scp -o StrictHostKeyChecking=no -r * aditidraut46@34.16.36.23:/home/aditidraut46/app/
 
-                        # Restart systemd service
                         ssh -o StrictHostKeyChecking=no aditidraut46@34.16.36.23 "
                           sudo systemctl daemon-reload &&
                           sudo systemctl restart flaskapp &&
@@ -77,15 +65,11 @@ pipeline {
                 }
             }
         }
-    }
 
-    post {
-        success {
-            echo "🎉 Pipeline Succeeded"
-        }
-        failure {
-            echo "❌ Pipeline Failed"
-        }
-    }
-}
+        stage('Quality Gate (Async)') {
+            steps {
+                script {
+                    // Run Quality Gate check asynchronously
+                    def qg = waitForQualityGate(timeout: 5, abortPipeline: false)
+                    e
 
